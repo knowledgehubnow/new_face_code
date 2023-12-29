@@ -31,4 +31,17 @@ class ImageDataListSerializer(serializers.ModelSerializer):
         model = ImageRecognition
         fields = "__all__"
 
+class TotalFrameSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Frame
+        fields = "__all__"
+        
+class VideoFrameSerializer(serializers.ModelSerializer):
+    frames = TotalFrameSerializer(many=True)
+    class Meta:
+        model = DetectedFrames
+        fields = "__all__"
+
+
+
 

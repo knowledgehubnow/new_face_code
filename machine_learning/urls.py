@@ -18,6 +18,7 @@ urlpatterns = [
     path('analysed/video/list/', AnalysedVideoListView.as_view()),
     path('analysed/video/detail/view/', AnalysedVideoDetailView.as_view()),
     path('analysed/image/list/', AnalysedImageListView.as_view()),
+    path('video/frame/view/', VideoFrameView.as_view()),
 
     path('video_detail/<int:video_id>/',views.video_detail,name = "video_detail"),
     path('delete/data/',views.delete_data,name = "analyzed_pdf_view"),

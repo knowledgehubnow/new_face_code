@@ -1751,3 +1751,30 @@ def get_data(request,id):
         "frame_data":detected_frames,
         "video_id":video
     })
+
+
+# Analysed video list api code **********************************
+class VideoFrameView(APIView):
+    def get(self, request):
+        video_id = request.query_params.get('id', None)
+        posture_name = request.query_params.get('posture', None)
+        if video_id and posture_name is not None:
+            video = VideoRecognition.objects.get(id=video_id)
+            posture = Posture.objects.get(video=video, name=posture_name)
+            detected_frames = DetectedFrames.objects.get(posture=posture)
+            serializer = VideoFrameSerializer(detected_frames)
+            return Response(
+                {
+                    "message":"Data found",
+                    "data":serializer.data,
+                },
+                status=status.HTTP_200_OK
+            )
+        else:
+           return Response(
+                {
+                    "message":"User ID not found",
+                },
+                status=status.HTTP_404_NOT_FOUND
+           )
+            
