@@ -21,6 +21,7 @@ class VideoRecognition(models.Model):
     name = models.CharField(max_length=255, null=True, blank=True)
     thumb_img = models.ImageField(upload_to='thumbnails/', null=True, blank=True)
     video_file = models.FileField(upload_to='videos/', null=True, blank=True)
+    video_durations = models.FloatField(null=True, blank=True)
     analysis_score = models.FloatField(default=0.0)
     word_per_minute = models.FloatField(null=True, blank=True)
     language_analysis = models.CharField(max_length = 100,null=True, blank=True)
@@ -67,9 +68,12 @@ class DetectedFrames(models.Model):
 
 class Frame(models.Model):
     image = models.ImageField(upload_to='frames/', null=True, blank=True)
+    number = models.IntegerField(null=True, blank=True)
+    current_time = models.FloatField(null=True, blank=True)
 
     def __str__(self):
-        return f"Frame {self.pk}"   
+        return f"Frame {self.pk}" 
+
 
 class AnalyzePDF(models.Model):
     pdf_name = models.CharField(max_length=255, null=True, blank=True)

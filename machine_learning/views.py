@@ -48,6 +48,8 @@ import wave
 from django.core.files import File
 from django.core.files.base import ContentFile
 from PIL import Image
+from django.http import JsonResponse
+from django.urls import reverse
 
 
 mp_pose = mp.solutions.pose
@@ -219,6 +221,8 @@ def scan_face(request):
                 # Save the first frame as a thumbnail image
                 cv2.imwrite(thumbnail_filename, image)
 
+                current_time = frame_count / fps
+                print("video duration for every frame",current_time)
                 frame_count += 1
                 if frame_count % frame_skip != 0:
                     continue  # Skip frames
@@ -229,11 +233,11 @@ def scan_face(request):
                     print("Bad Posture Time:", bad_time)
                     if good_time > 0:
                         good_posture_time += good_time
-                        save_detected_frame(video_recognition, "good_posture", image)
+                        save_detected_frame(video_recognition, "good_posture", image,frame_count,current_time)
 
                     else:
                         bad_posture_time += bad_time
-                        save_detected_frame(video_recognition, "bad_posture", image)
+                        save_detected_frame(video_recognition, "bad_posture", image,frame_count,current_time)
 
                 except Exception as e:
                     print(e)
@@ -244,7 +248,7 @@ def scan_face(request):
                 if len(faces) > 0:
                     total_detected_time += time.time() - start_time
                     start_time = time.time()
-                    save_detected_frame(video_recognition, "face_detected", image)
+                    save_detected_frame(video_recognition, "face_detected", image,frame_count,current_time)
                     for face in faces:
                         # Get facial landmarks
                         landmarks = landmark_predict(gray_frame, face)
@@ -261,7 +265,7 @@ def scan_face(request):
                 else:
                     total_not_detected_time += time.time() - start_time
                     start_time = time.time()
-                    save_detected_frame(video_recognition, "face_not_detected", image)
+                    save_detected_frame(video_recognition, "face_not_detected", image,frame_count,current_time)
                 
                 frame = cv2.flip(image, 1)
                 # Emotion Changes Detection
@@ -277,7 +281,7 @@ def scan_face(request):
                 if predicted_emotion is not None:
                     emotion_change += 1
                     cv2.putText(image, predicted_emotion, (50, 70), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
-                    save_detected_frame(video_recognition, f"{predicted_emotion}", image)
+                    save_detected_frame(video_recognition, f"{predicted_emotion}", image,frame_count,current_time)
                 else:
                     emotion_not_detected += 1
                     
@@ -295,38 +299,38 @@ def scan_face(request):
                 if greeting_gesture == "Namaste" or greeting_gesture == "Hi/Hello":
                     greet_gesture = "Greeting gesture included"
                     cv2.putText(image, greeting_gesture, (20, 100), cv2.FONT_HERSHEY_COMPLEX, 0.9, (0, 255, 0), 2)
-                    save_detected_frame(video_recognition, "greeting_gesture", image)
+                    save_detected_frame(video_recognition, "greeting_gesture", image,frame_count,current_time)
                 else:
-                    save_detected_frame(video_recognition, "no_gesture", image)
+                    save_detected_frame(video_recognition, "no_gesture", image,frame_count,current_time)
 
                 if hand_track is not None:
                     hand_move = 'Hand Moving'
                     hand_movement_count += 1
                     hand_track,x,y = hand_track
                     cv2.putText(image, 'Hand Moving', (x, y + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
-                    save_detected_frame(video_recognition, "hand_moving", image)
+                    save_detected_frame(video_recognition, "hand_moving", image,frame_count,current_time)
                 else:
                     none_hand_movement_count += 1
-                    save_detected_frame(video_recognition, "hand_not_moving", image)
+                    save_detected_frame(video_recognition, "hand_not_moving", image,frame_count,current_time)
 
                 if thanks_gesture is not None:
                     thanks_gesture,x,y = thanks_gesture
                     thanks = "Thanking gesture included"
                     cv2.putText(image, 'Thanks Gesture', (x, y + 30), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 255, 0), 2)
-                    save_detected_frame(video_recognition, "thanks", image)
+                    save_detected_frame(video_recognition, "thanks", image,frame_count,current_time)
                 else:
-                    save_detected_frame(video_recognition, "no_thanks", image)
+                    save_detected_frame(video_recognition, "no_thanks", image,frame_count,current_time)
 
                 if confidence == "Confident":
                     b_confidence = "Confident body posture"
                     body_confidence_count += 1
                     # Display the posture on the frame
                     cv2.putText(image, f"Posture: {confidence}", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 153, 51 ), 2)
-                    save_detected_frame(video_recognition, "confident", image)
+                    save_detected_frame(video_recognition, "confident", image,frame_count,current_time)
                 else:
                     not_body_confidence_count += 1
                     cv2.putText(image, f"Posture: {confidence}", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 153, 51 ), 2)
-                    save_detected_frame(video_recognition, "unconfident", image)
+                    save_detected_frame(video_recognition, "unconfident", image,frame_count,current_time)
 
                 # Eye Contact detection code start ***********
                 eye_distance, x, y, w, h = eye_contact_detection(image, face_cascade, eye_cascade)
@@ -336,10 +340,10 @@ def scan_face(request):
                     eye_contact = 'Eye Contact'
                     eye_contact_detect += 1
                     cv2.putText(image, 'Eye Contact', (x, y + h - 40), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 233, 51), 2)
-                    save_detected_frame(video_recognition, "eye_contact", image)
+                    save_detected_frame(video_recognition, "eye_contact", image,frame_count,current_time)
                 else:
                     eye_not_contact += 1
-                    save_detected_frame(video_recognition, "not_contact", image)
+                    save_detected_frame(video_recognition, "not_contact", image,frame_count,current_time)
 
                 # Eye Blinging detection code start *************
                 blinging_detected = eye_blinging(image)
@@ -357,7 +361,7 @@ def scan_face(request):
                 if elapsed_time >= 5:
                     if blinks_per_minute > 2:
                         eye_bling = "Blink more often"
-                        save_detected_frame(video_recognition, "more_blinging", image)
+                        save_detected_frame(video_recognition, "more_blinging", image,frame_count,current_time)
                         cv2.putText(image, f'{blinks_per_minute} Blinks in 5 Second', (60, 100), cv2.FONT_HERSHEY_DUPLEX, 1, (0, 0, 255), 1)
                     blinks_per_minute = 0
                     current_second_start_time = time.time()
@@ -452,6 +456,7 @@ def scan_face(request):
                 video_recognition.voice_modulation_analysis = voice_modulation
                 video_recognition.energy_level_analysis = energy_level
                 video_recognition.video_file = video_file
+                video_recognition.video_durations = duration
                 video_recognition.word_per_minute = speech_rate
                 video_recognition.filler_words_used = filler_words
                 video_recognition.frequently_used_word = words_list
@@ -499,7 +504,7 @@ def scan_face(request):
 
     return render(request, 'upload.html')
 
-def save_detected_frame(video_recognition_obj, detected_data, image_frame):
+def save_detected_frame(video_recognition_obj, detected_data, image_frame, frame_count,current_time):
     # Convert the frame to a JPEG image
     pil_image = Image.fromarray(cv2.cvtColor(image_frame, cv2.COLOR_BGR2RGB))
     buffer = BytesIO()
@@ -510,16 +515,19 @@ def save_detected_frame(video_recognition_obj, detected_data, image_frame):
     try:
         # Get or create the posture associated with the video
         posture, created = Posture.objects.get_or_create(video=video_recognition_obj, name=detected_data)
-        
+
         # Get or create the DetectedFrames instance for that Posture
         detected_frame, created = DetectedFrames.objects.get_or_create(posture=posture)
+
+        # Add the frame to the many-to-many relationship with the correct frame number
+        frame, created = Frame.objects.get_or_create(image=frame_image, number=frame_count,current_time=current_time)
+        detected_frame.frames.add(frame)
+
     except Exception as e:
         print(f"Error: {e}")
         return
 
-    # Add the frame to the many-to-many relationship
-    frame, created = Frame.objects.get_or_create(image=frame_image)
-    detected_frame.frames.add(frame)
+  
 
 
 def get_analysis_score(body_language_score,facial_expression_score,voice_modulation_score,body_confidence_score,language_analysis_score):
@@ -1186,7 +1194,7 @@ class VideoUploadView(APIView):
                     video_data = None
 
                 if video_data is None:
-                    analysis = analyse_video(video_file,user)
+                    analysis = analyse_video(video_file,user,duration)
                     if analysis is not None:
                         analysed_data = VideoRecognition.objects.get(id = analysis)
                         serializer = VideoDataSerializer(analysed_data)  # Use your VideoDataSerializer to serialize the instance
@@ -1229,7 +1237,7 @@ class VideoUploadView(APIView):
             status=status.HTTP_400_BAD_REQUEST
         )
     
-def analyse_video(video_file,user):
+def analyse_video(video_file,user,duration):
     face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
     eye_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_eye.xml')
     smile_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_smile.xml')   
@@ -1322,6 +1330,7 @@ def analyse_video(video_file,user):
         # Save the first frame as a thumbnail image
         cv2.imwrite(thumbnail_filename, image)
 
+        current_time = frame_count / fps
         frame_count += 1
         if frame_count % frame_skip != 0:
             continue  # Skip frames
@@ -1331,12 +1340,12 @@ def analyse_video(video_file,user):
             print("Good Posture Time:", good_time)
             print("Bad Posture Time:", bad_time)
             if good_time > 0:
-                save_detected_frame(video_recognition, "good_posture", image)
+                save_detected_frame(video_recognition, "good_posture", image,frame_count,current_time)
                 good_posture_time += good_time
 
             else:
                 bad_posture_time += bad_time
-                save_detected_frame(video_recognition, "bad_posture", image)
+                save_detected_frame(video_recognition, "bad_posture", image,frame_count,current_time)
 
         except Exception as e:
             print(e)
@@ -1346,7 +1355,7 @@ def analyse_video(video_file,user):
         if len(faces) > 0:
             total_detected_time += time.time() - start_time
             start_time = time.time()
-            save_detected_frame(video_recognition, "face_detected", image)
+            save_detected_frame(video_recognition, "face_detected", image,frame_count,current_time)
             for face in faces:
                 # Get facial landmarks
                 landmarks = landmark_predict(gray_frame, face)
@@ -1361,7 +1370,7 @@ def analyse_video(video_file,user):
         else:
             total_not_detected_time += time.time() - start_time
             start_time = time.time()     
-            save_detected_frame(video_recognition, "face_not_detected", image)           
+            save_detected_frame(video_recognition, "face_not_detected", image,frame_count,current_time)           
         frame = cv2.flip(image, 1)
         # Emotion Changes Detection
         predicted_emotion = get_emotion_change(face_cascade,image)
@@ -1374,7 +1383,7 @@ def analyse_video(video_file,user):
         if predicted_emotion is not None:
             emotion_change += 1
             cv2.putText(image, predicted_emotion, (50, 70), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
-            save_detected_frame(video_recognition, f"{predicted_emotion}", image)
+            save_detected_frame(video_recognition, f"{predicted_emotion}", image,frame_count,current_time)
         else:
             emotion_not_detected += 1
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)               
@@ -1389,18 +1398,18 @@ def analyse_video(video_file,user):
         if greeting_gesture == "Namaste" or greeting_gesture == "Hi/Hello":
             greet_gesture = "Greeting gesture included"
             cv2.putText(image, greeting_gesture, (20, 100), cv2.FONT_HERSHEY_COMPLEX, 0.9, (0, 255, 0), 2)
-            save_detected_frame(video_recognition, "greeting_gesture", image)
+            save_detected_frame(video_recognition, "greeting_gesture", image,frame_count,current_time)
         else:
-            save_detected_frame(video_recognition, "no_gesture", image)
+            save_detected_frame(video_recognition, "no_gesture", image,frame_count,current_time)
         if hand_track is not None:
             hand_move = 'Hand Moving'
             hand_movement_count += 1
             hand_track,x,y = hand_track
             cv2.putText(image, 'Hand Moving', (x, y + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
-            save_detected_frame(video_recognition, "hand_moving", image)
+            save_detected_frame(video_recognition, "hand_moving", image,frame_count,current_time)
         else:
             none_hand_movement_count += 1
-            save_detected_frame(video_recognition, "hand_not_moving", image)
+            save_detected_frame(video_recognition, "hand_not_moving", image,frame_count,current_time)
 
         if thanks_gesture is not None:
             thanks_gesture,x,y = thanks_gesture
@@ -1408,17 +1417,17 @@ def analyse_video(video_file,user):
             cv2.putText(image, 'Thanks Gesture', (x, y + 30), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 255, 0), 2)
             save_detected_frame(video_recognition, "thanks", image)
         else:
-            save_detected_frame(video_recognition, "no_thanks", image)
+            save_detected_frame(video_recognition, "no_thanks", image,frame_count,current_time)
         if confidence == "Confident":
             b_confidence = "Confident body posture"
             body_confidence_count += 1
             # Display the posture on the frame
             cv2.putText(image, f"Posture: {confidence}", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 153, 51 ), 2)
-            save_detected_frame(video_recognition, "confident", image)
+            save_detected_frame(video_recognition, "confident", image,frame_count,current_time)
         else:
             not_body_confidence_count += 1
             cv2.putText(image, f"Posture: {confidence}", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 153, 51 ), 2)
-            save_detected_frame(video_recognition, "unconfident", image)
+            save_detected_frame(video_recognition, "unconfident", image,frame_count,current_time)
         # Eye Contact detection code start ***********
         eye_distance, x, y, w, h = eye_contact_detection(image, face_cascade, eye_cascade)
         eye_contact_threshold = 20  # Example threshold, you may need 
@@ -1427,10 +1436,10 @@ def analyse_video(video_file,user):
             eye_contact = 'Eye Contact'
             eye_contact_detect += 1
             cv2.putText(image, 'Eye Contact', (x, y + h - 40), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 233, 51), 2) 
-            save_detected_frame(video_recognition, "eye_contact", image)
+            save_detected_frame(video_recognition, "eye_contact", image,frame_count,current_time)
         else:
             eye_not_contact += 1     
-            save_detected_frame(video_recognition, "not_contact", image)          
+            save_detected_frame(video_recognition, "not_contact", image,frame_count,current_time)          
         # Eye Blinging detection code start *************
         blinging_detected = eye_blinging(image)
         if blinging_detected < blink_thresh: 
@@ -1447,7 +1456,7 @@ def analyse_video(video_file,user):
             if blinks_per_minute > 2:
                 eye_bling = "Blink more often"
                 cv2.putText(image, f'{blinks_per_minute} Blinks in 5 Second', (60, 100), cv2.FONT_HERSHEY_DUPLEX, 1, (0, 0, 255), 1)
-                save_detected_frame(video_recognition, "more_blinging", image)
+                save_detected_frame(video_recognition, "more_blinging", image,frame_count,current_time)
             blinks_per_minute = 0
             current_second_start_time = time.time()
         # Eye Blinging detection code start *************
@@ -1533,6 +1542,7 @@ def analyse_video(video_file,user):
         video_recognition.voice_modulation_analysis = voice_modulation
         video_recognition.energy_level_analysis = energy_level
         video_recognition.video_file = video_file
+        video_recognition.video_durations = duration
         video_recognition.word_per_minute = speech_rate
         video_recognition.filler_words_used = filler_words
         video_recognition.frequently_used_word = words_list
@@ -1699,11 +1709,18 @@ class AnalysedVideoDetailView(APIView):
            )
             
 def delete_data(request):
-    data = Frame.objects.all()
-    data = Posture.objects.all()
-    data = DetectedFrames.objects.all()
-    data = VideoRecognition.objects.all()
-    data.delete()
+    # Delete all instances of Frame model
+    Frame.objects.all().delete()
+
+    # Delete all instances of Posture model
+    Posture.objects.all().delete()
+
+    # Delete all instances of DetectedFrames model
+    DetectedFrames.objects.all().delete()
+
+    # Delete all instances of VideoRecognition model
+    VideoRecognition.objects.all().delete()
+
     return HttpResponse("Success")
 
 def video_detail(request,video_id):
@@ -1711,14 +1728,11 @@ def video_detail(request,video_id):
     if request.method == "POST":
         posture_name = request.POST.get("posture")
         posture = Posture.objects.filter(video=video,name = posture_name)
-        print(posture)
 
     return render(request,"detail.html",{
         "video_data":video
     })
 
-from django.http import JsonResponse
-from django.urls import reverse
 def frame(request):
     if request.method == "POST":
         try:
@@ -1729,7 +1743,7 @@ def frame(request):
             video = VideoRecognition.objects.get(id=video_id)
             posture = Posture.objects.get(video=video, name=posture_name)
             detected_frames = DetectedFrames.objects.get(posture=posture)
-            print(detected_frames)
+
             # Construct the redirect URL dynamically
             redirect_url = reverse('get_data', kwargs={'id': detected_frames.id})
 
@@ -1745,11 +1759,24 @@ def frame(request):
 
 def get_data(request,id):
     detected_frames = DetectedFrames.objects.get(id=id)
-    video = detected_frames.posture.video.id
-    print(video)
-    return render(request,"frames.html",{
-        "frame_data":detected_frames,
-        "video_id":video
+    video = detected_frames.posture.video
+    video_duration = detected_frames.posture.video.video_durations
+    posture = detected_frames.posture
+    frames = detected_frames.frames.all()
+    total_frame = len(frames)
+
+    # Calculate the percentage position for each frame
+    for frame in frames:
+        if frame.current_time and video_duration is not None:
+            frame.percent_position = frame.current_time / video_duration * 100
+        else:
+            frame.percent_position = 0.0
+
+    return render(request,"frame_data.html",{
+        'frame_data': frames,
+        'total_frame': total_frame,
+        "video":video,
+        "posture":posture
     })
 
 

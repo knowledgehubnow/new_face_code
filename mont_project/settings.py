@@ -38,7 +38,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     "machine_learning",
-    "rest_framework"
+    "rest_framework",
+    'django_cleanup.apps.CleanupConfig',  # Configuration for deleteing media file if we delete this file from databse
 ]
 
 MIDDLEWARE = [
