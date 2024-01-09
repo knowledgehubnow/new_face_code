@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+{% load static %}
 <html>
 <head>
     <meta charset="UTF-8">
@@ -9,158 +10,219 @@
 <body>
     <div class="container mt-5">
         <div class="btn-group mb-5" role="group" aria-label="Basic mixed styles example">
-            <a href="{% url 'scan_face' %}"><button type="button" class="btn btn-secondary">Click to Analyze more Video</button></a>
+            <a href="{% url 'analized_video_list' %}"><button type="button" class="btn btn-secondary">Go Back</button></a>
         </div>
         <div class="card my-3" style="max-width: 100%;">
             <div class="row g-4">
-              <div class="col-md-4 col-sm-12">
-                    <video width="320" height="240" controls>
+              <div class="col-4">
+                    <video class="card-img-top" width="100%" height="200" controls>
                         <source src="{{ video_data.video_file.url }}" type="video/mp4">
                         Your browser does not support the video tag.
                     </video>
-              </div>
-              <div class="col-md-4 col-sm-12">
-                <div class="card-body">
-                    <h5 class="card-title">{{ video_data.name|truncatechars:20 }}</h5>
-                    <hr>
-                    <div class="row">
-                        <div class="col-4">
-                            <h6 class="fw-bold">Total Score:-</h6>
-                        </div>
-                        <div class="col-8">
-                            <div class="progress" role="progressbar" aria-label="Success example" aria-valuenow="25" aria-valuemin="0" aria-valuemax="100">
-                                <div class="progress-bar bg-success" style="width: {{video_data.analysis_score}}%">{{ video_data.analysis_score }}%</div>
+                    <div class="card-body">
+                        <h5 class="card-title">{{ video_data.name|truncatechars:20 }}</h5>
+                        <hr>
+                        <div class="row">
+                            <div class="col-4">
+                                <h6 class="fw-bold">Total Score:-</h6>
+                            </div>
+                            <div class="col-8">
+                                <div class="progress" role="progressbar" aria-label="Success example" aria-valuenow="25" aria-valuemin="0" aria-valuemax="100">
+                                    <div class="progress-bar bg-success" style="width: {{video_data.analysis_score}}%">{{ video_data.analysis_score }}%</div>
+                                </div>
                             </div>
                         </div>
+                        <hr>
+                        <p class="card-text"><span class="fw-bold">Body Language Score:</span> <span class="badge bg-success">{{ video_data.body_language_score }} %</span></p>
+                        <p class="card-text"><span class="fw-bold">Facial Expression Score:</span> <span class="badge bg-success">{{ video_data.facial_expression_score }} %</span></p>
+                        <p class="card-text"><span class="fw-bold">Language Analysis Score:</span> <span class="badge bg-success">{{ video_data.language_analysis_score }} %</span></p>
+                        <p class="card-text"><span class="fw-bold">Voice modulation score:</span> <span class="badge bg-success">{{ video_data.voice_modulation_score }} %</span></p>
+                        <p class="card-text"><span class="fw-bold">Body confidence score:</span> <span class="badge bg-success">{{ video_data.body_confidence_score }} %</span></p>
                     </div>
-                    <hr>
-                    <p class="card-text"><span class="fw-bold">Body Language Score:</span> <span class="badge bg-success">{{ video_data.body_language_score }} %</span></p>
-                    <p class="card-text"><span class="fw-bold">Facial Expression Score:</span> <span class="badge bg-success">{{ video_data.facial_expression_score }} %</span></p>
-                    <p class="card-text"><span class="fw-bold">Language Analysis Score:</span> <span class="badge bg-success">{{ video_data.language_analysis_score }} %</span></p>
-                    <p class="card-text"><span class="fw-bold">Voice modulation score:</span> <span class="badge bg-success">{{ video_data.voice_modulation_score }} %</span></p>
-                    <p class="card-text"><span class="fw-bold">Body confidence score:</span> <span class="badge bg-success">{{ video_data.body_confidence_score }} %</span></p>
-                    <p class="card-text"><span class="fw-bold">Speech Rate:</span> <span class="badge bg-success">{{ video_data.word_per_minute }} </span>words/min.</p>
-                    <p class="card-text"><span class="fw-bold">Language Analysis:</span> <span class="badge bg-success">{{ video_data.language_analysis}} </span></p>
-                    <p class="card-text"><span class="fw-bold">Voice Modulation Analysis:</span> <span class="badge bg-success">{{ video_data.voice_modulation_analysis.modulation_rating }} </span></p>
-                    <p class="card-text"><span class="fw-bold">Energy Level Analysis:</span> <span class="badge bg-success">{{ video_data.energy_level_analysis }} </span></p>
-                    <p class="card-text">
-                        <span class="fw-bold">Filler Words:</span> 
-                        {% for filler_word in video_data.filler_words_used %}
-                            <span class="badge bg-success">{{ filler_word }} </span>
-                        {% endfor %}
-                    </p>
-                    <p class="card-text">
-                        <span class="fw-bold">Frequently Used Words:</span> 
-                        {% for frequently_used in video_data.frequently_used_word %}
-                            <span class="badge bg-success">{{ frequently_used }} </span>
-                        {% endfor %}
-                    </p>
-                    <p class="card-text">
-                        <span class="fw-bold">Voice Emotion:</span> 
-                        {% for emo in video_data.voice_emotion %}
-                            <span class="badge bg-success">{{ emo }} </span>
-                        {% endfor %}
-                    </p>
-                    <p class="card-text">
-                        <span class="fw-bold">Facial Expression:</span> 
-                            <span class="badge bg-success">{{ video_data.facial_expression }} </span>
-                    </p>
-                    
-                </div>
               </div>
-              <div class="col-md-4 col-sm-12">
+              <div class="col-8">
                 <h1><u>Feedback</u></h1>
-                <p class="card-text">
-                    <span class="fw-bold">Eye Contact:</span> 
-                    {% if video_data.eye_contact != None %}
-                    <span class="badge bg-success">{{ video_data.eye_contact }} </span>
-                    {% else %}
-                    <span class="badge bg-danger">Eye contact not detected </span>
-                    {% endif %}
-                </p>
-                <p class="card-text">
-                    <span class="fw-bold">Hand Movement:</span> 
-                    {% if video_data.hand_movement != None %}
-                    <span class="badge bg-success">{{ video_data.hand_movement }} </span>
-                    {% else %}
-                    <span class="badge bg-danger">Hand not moving </span>
-                    {% endif %}
-                </p>
-                <p class="card-text">
-                    <span class="fw-bold">Eye Bling:</span> 
-                    {% if video_data.eye_bling != None %}
-                    <span class="badge bg-danger">{{ video_data.eye_bling }} </span>
-                    {% else %}
-                    <span class="badge bg-success">Eye Blinging </span>
-                    {% endif %}
-                </p>
-                <p class="card-text">
-                    <span class="fw-bold">Body Confidence:</span> 
-                    {% if video_data.confidence != None %}
-                    <span class="badge bg-success">{{ video_data.confidence }} </span>
-                    {% else %}
-                    <span class="badge bg-danger">Not confident body posture </span>
-                    {% endif %}
-                </p>
-                <p class="card-text">
-                    <span class="fw-bold">Thanks Gesture:</span> 
-                    {% if video_data.thanks_gesture != None %}
-                    <span class="badge bg-success">{{ video_data.thanks_gesture }} </span>
-                    {% else %}
-                    <span class="badge bg-danger">Thanking gesture is not included </span>
-                    {% endif %}
-                </p>
-                <p class="card-text">
-                    <span class="fw-bold">Greeting:</span> 
-                    {% if video_data.greeting != None %}
-                    <span class="badge bg-success">{{ video_data.greeting }} </span>
-                    {% else %}
-                    <span class="badge bg-danger">Greeting not included </span>
-                    {% endif %}
-                </p>
-                <p class="card-text">
-                    <span class="fw-bold">Greeting Gesture:</span> 
-                    {% if video_data.greeting_gesture != None %}
-                    <span class="badge bg-success">{{ video_data.greeting_gesture }} </span>
-                    {% else %}
-                    <span class="badge bg-danger">Include greeting gesture </span>
-                    {% endif %}
-                </p>
-                <p class="card-text">
-                    <span class="fw-bold">Voice Monotone:</span> 
-                    {% if video_data.voice_tone == "Voice is clear." %}
-                    <span class="badge bg-success">{{video_data.voice_tone}} </span>
-                    {% else %}
-                    <span class="badge bg-danger">{{video_data.voice_tone}} </span>
-                    {% endif %}
-                </p>
-                <p class="card-text">
-                    <span class="fw-bold">Voice Pauses:</span> 
-                    {% if video_data.voice_pauses == "Pauses seem natural" %}
-                    <span class="badge bg-success">{{video_data.voice_pauses}} </span>
-                    {% else %}
-                    <span class="badge bg-danger">{{video_data.voice_pauses}} </span>
-                    {% endif %}
-                </p>
-                <p class="card-text">
-                    <span class="fw-bold">Face Detection:</span> 
-                    {% if video_data.appropriate_facial == "Appropriate Facial Detected." %}
-                    <span class="badge bg-success">{{video_data.appropriate_facial}} </span>
-                    {% else %}
-                    <span class="badge bg-danger">{{video_data.appropriate_facial}} </span>
-                    {% endif %}
-                </p>
-                <p class="card-text">
-                    <span class="fw-bold">Body Posture:</span> 
-                    {% if video_data.body_posture == "Good Body Posture" %}
-                    <span class="badge bg-success">{{video_data.body_posture}} </span>
-                    {% else %}
-                    <span class="badge bg-danger">{{video_data.body_posture}} </span>
-                    {% endif %}
-                </p>
-          </div>
+                <div class="row">                  
+                    <div class="col-6">
+                        <div class="card-body">
+                            <p class="card-text"><span class="fw-bold">Speech Rate:</span> <span class="badge bg-success">{{ video_data.word_per_minute }} </span>&nbsp;words/min.</p>
+                            {% if video_data.word_per_minute > 0 %}
+                            <p class="card-text"><span class="fw-bold">Language Analysis:</span> <span class="badge bg-success">{{ video_data.language_analysis}} </span></p>
+                            <p class="card-text"><span class="fw-bold">Voice Modulation Analysis:</span> <span class="badge bg-success">{{ video_data.voice_modulation_analysis.modulation_rating }} </span></p>
+                            <p class="card-text"><span class="fw-bold">Energy Level Analysis:</span> <span class="badge bg-success">{{ video_data.energy_level_analysis }} </span></p>
+                            {% else %}
+                            <p class="card-text"><span class="fw-bold">Language Analysis:</span> <span class="badge bg-danger">{{ video_data.language_analysis}} </span></p>
+                            <p class="card-text"><span class="fw-bold">Voice Modulation Analysis:</span> <span class="badge bg-danger">{{ video_data.voice_modulation_analysis.modulation_rating }} </span></p>
+                            <p class="card-text"><span class="fw-bold">Energy Level Analysis:</span> <span class="badge bg-danger">{{ video_data.energy_level_analysis }} </span></p>
+                            {% endif %}
+                            <p class="card-text">
+                                <span class="fw-bold">Filler Words:</span> 
+                                {% for filler_word in video_data.filler_words_used %}
+                                    <span class="badge bg-success">{{ filler_word }} </span>
+                                {% endfor %}
+                            </p>
+                            <p class="card-text">
+                                <span class="fw-bold">Frequently Used Words:</span> 
+                                {% for frequently_used in video_data.frequently_used_word %}
+                                    <span class="badge bg-success">{{ frequently_used }} </span>
+                                {% endfor %}
+                            </p>
+                            <p class="card-text">
+                                <span class="fw-bold">Voice Monotone:</span> 
+                                {% if video_data.voice_tone == "Voice is clear." %}
+                                <span class="badge bg-success">{{video_data.voice_tone}} </span>
+                                {% else %}
+                                <span class="badge bg-danger">{{video_data.voice_tone}} </span>
+                                {% endif %}
+                            </p>
+                            <p class="card-text">
+                                <span class="fw-bold">Voice Pauses:</span> 
+                                {% if video_data.voice_pauses == "Pauses seem natural" %}
+                                <span class="badge bg-success">{{video_data.voice_pauses}} </span>
+                                {% else %}
+                                <span class="badge bg-danger">{{video_data.voice_pauses}} </span>
+                                {% endif %}
+                            </p>
+                            <p class="card-text">
+                                <span class="fw-bold">Voice Emotion:</span> 
+                                {% if data.voice_emotion %}
+                                    {% for emo in data.voice_emotion %}
+                                        {% if emo != "None" %}
+                                        <span class="badge bg-success">{{ emo }} </span>
+                                        {% else %}
+                                        <span class="badge bg-danger">{{ emo }} </span>
+                                        {% endif %}
+                                    {% endfor %}
+                                {% else %}
+                                    <span class="badge bg-danger">Voice emotion not detected</span>
+                                {% endif %}
+                            </p>
+                            <p class="card-text">
+                                <span class="fw-bold">Greeting:</span> 
+                                {% if video_data.greeting != None %}
+                                <span class="badge bg-success">{{ video_data.greeting }} </span>
+                                {% else %}
+                                <span class="badge bg-danger">Greeting not included </span>
+                                {% endif %}
+                            </p>
+                            <p class="card-text">
+                                <span class="fw-bold">Thanks:</span> 
+                                {% if video_data.thanks_word != None %}
+                                <span class="badge bg-success posture" data-posture-name="thanks">{{ video_data.thanks_word }} </span>
+                                {% else %}
+                                <span class="badge bg-danger posture" data-posture-name="no_thanks">Thanking is not included </span>
+                                {% endif %}
+                            </p>
+
+                            
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <p class="card-text">
+                            <span class="fw-bold">Eye Contact:</span> 
+                            {% if video_data.eye_contact != None %}
+                            <span class="badge bg-success posture" data-posture-name="eye_contact">{{ video_data.eye_contact }} </span>
+                            {% else %}
+                            <span class="badge bg-danger posture" data-posture-name="not_contact">Eye contact not detected </span>
+                            {% endif %}
+                        </p>
+                        <p class="card-text">
+                            <span class="fw-bold">Hand Movement:</span> 
+                            {% if video_data.hand_movement != None %}
+                            <span class="badge bg-success posture" data-posture-name="hand_moving">{{ video_data.hand_movement }} </span>
+                            {% else %}
+                            <span class="badge bg-danger posture" data-posture-name="hand_not_moving">Hand not moving </span>
+                            {% endif %}
+                        </p>
+                        <p class="card-text">
+                            <span class="fw-bold">Eye Bling:</span> 
+                            {% if video_data.eye_bling != None %}
+                            <span class="badge bg-danger posture" data-posture-name="more_blinging">{{ video_data.eye_bling }} </span>
+                            {% else %}
+                            <span class="badge bg-success">Eye Blinging </span>
+                            {% endif %}
+                        </p>
+                        <p class="card-text">
+                            <span class="fw-bold">Body Confidence:</span> 
+                            {% if video_data.confidence != None %}
+                            <span class="badge bg-success posture" data-posture-name="confident">{{ video_data.confidence }} </span>
+                            {% else %}
+                            <span class="badge bg-danger posture" data-posture-name="unconfident">Not confident body posture </span>
+                            {% endif %}
+                        </p>
+                        
+                        <p class="card-text">
+                            <span class="fw-bold">Greeting Gesture:</span> 
+                            {% if video_data.greeting_gesture != None %}
+                            <span class="badge bg-success posture" data-posture-name="greating_gesture">{{ video_data.greeting_gesture }} </span>
+                            {% else %}
+                            <span class="badge bg-danger posture" data-posture-name="no_gesture">Include greeting gesture </span>
+                            {% endif %}
+                        </p>
+                        <p class="card-text">
+                            <span class="fw-bold">Facial Expression:</span> 
+                                <span class="badge bg-success posture" data-posture-name="{{video_data.facial_expression}}">{{ video_data.facial_expression }} </span>
+                        </p>
+                        <p class="card-text">
+                            <span class="fw-bold">Face Detection:</span> 
+                            {% if video_data.appropriate_facial == "Appropriate Facial Detected." %}
+                            <span class="badge bg-success posture" data-posture-name="face_detected">{{video_data.appropriate_facial}} </span>
+                            {% else %}
+                            <span class="badge bg-danger posture" data-posture-name="face_not_detected">{{video_data.appropriate_facial}} </span>
+                            {% endif %}
+                        </p>
+                        <p class="card-text">
+                            <span class="fw-bold">Body Posture:</span> 
+                            {% if video_data.body_posture == "Good Body Posture" %}
+                            <span class="badge bg-success posture" data-posture-name="good_posture">{{video_data.body_posture}} </span>
+                            {% else %}
+                            <span class="badge bg-danger posture" data-posture-name="bad_posture">{{video_data.body_posture}} </span>
+                            {% endif %}
+                        </p>
+                    </div>
+                <div>
             </div>
         </div>
     </div>
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            // Attach click event to all paragraph tags inside the card-body
+            $(".posture").click(function () {
+                // Extract data from the clicked paragraph tag or any other data you want to send
+                var postData = {
+                    id: "{{ video_data.id }}",  // Replace with your actual video ID
+                    posture: $(this).data("posture-name"),  // Assuming you have data attribute for posture name
+                    csrfmiddlewaretoken: '{{ csrf_token }}'
+                };
+
+                // Make a fetch POST request
+                fetch("{% url 'frame' %}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': postData.csrfmiddlewaretoken
+                    },
+                    body: JSON.stringify(postData)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    // Check if there is a redirect URL in the response
+                    if (data.redirect_url) {
+                        // Redirect to the new page
+                        window.location.href = data.redirect_url;
+                    } else {
+                        // Handle other response data if needed
+                        console.log(data);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+        
+            });
+        });
+    </script>
 </body>
 </html>
