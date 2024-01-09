@@ -17,13 +17,21 @@
             <div class="col">
                 <div class="card">
                     <div>
-                        <video class="card-img-top" width="100%" height="200" controls>
-                            <source src="{{ data.video_file.url }}" type="video/mp4">
-                            Your browser does not support the video tag.
-                        </video>
+                        {% if data.video_file %}
+                            <video class="card-img-top" width="100%" height="200" controls>
+                                <source src="{{ data.video_file.url }}" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        {% else %}
+                            <img src="{% static "images/video_unavailable.jpg" %}" alt="Image" height="200" width="100%">
+                        {% endif %}
                     </div>
                     <div class="card-body">
+                        {% if data.video_file %}
                         <a href="{% url "video_detail" data.id %}"><h5 class="card-title">{{ data.name|truncatechars:20 }}</h5></a>
+                        {% else %}
+                            <h5 class="card-title">{{ data.name|truncatechars:20 }}</h5>
+                        {% endif %}
                         <hr>
                         <div class="row">
                             <div class="col-4">
@@ -41,10 +49,16 @@
                         <p class="card-text"><span class="fw-bold">Language Analysis Score:</span> <span class="badge bg-success">{{ data.language_analysis_score }} %</span></p>
                         <p class="card-text"><span class="fw-bold">Voice modulation score:</span> <span class="badge bg-success">{{ data.voice_modulation_score }} %</span></p>
                         <p class="card-text"><span class="fw-bold">Body confidence score:</span> <span class="badge bg-success">{{ data.body_confidence_score }} %</span></p>
-                        <p class="card-text"><span class="fw-bold">Speech Rate:</span> <span class="badge bg-success">{{ data.word_per_minute }} </span>words/min.</p>
-                        <p class="card-text"><span class="fw-bold">Language Analysis:</span> <span class="badge bg-success">{{ data.language_analysis }} </span></p>
+                        <p class="card-text"><span class="fw-bold">Speech Rate:</span> <span class="badge bg-success">{{ data.word_per_minute }} </span>&nbsp;words/min.</p>
+                        {% if data.word_per_minute > 0 %}
+                        <p class="card-text"><span class="fw-bold">Language Analysis:</span> <span class="badge bg-success">{{ data.language_analysis}} </span></p>
                         <p class="card-text"><span class="fw-bold">Voice Modulation Analysis:</span> <span class="badge bg-success">{{ data.voice_modulation_analysis.modulation_rating }} </span></p>
                         <p class="card-text"><span class="fw-bold">Energy Level Analysis:</span> <span class="badge bg-success">{{ data.energy_level_analysis }} </span></p>
+                        {% else %}
+                        <p class="card-text"><span class="fw-bold">Language Analysis:</span> <span class="badge bg-danger">{{ data.language_analysis}} </span></p>
+                        <p class="card-text"><span class="fw-bold">Voice Modulation Analysis:</span> <span class="badge bg-danger">{{ data.voice_modulation_analysis.modulation_rating }} </span></p>
+                        <p class="card-text"><span class="fw-bold">Energy Level Analysis:</span> <span class="badge bg-danger">{{ data.energy_level_analysis }} </span></p>
+                        {% endif %}
                         <p class="card-text">
                             <span class="fw-bold">Filler Words:</span> 
                             {% for filler_word in data.filler_words_used %}
@@ -59,10 +73,19 @@
                         </p>
                         <p class="card-text">
                             <span class="fw-bold">Voice Emotion:</span> 
-                            {% for emo in data.voice_emotion %}
-                                <span class="badge bg-success">{{ emo }} </span>
-                            {% endfor %}
+                            {% if data.voice_emotion %}
+                                {% for emo in data.voice_emotion %}
+                                    {% if emo != "None" %}
+                                    <span class="badge bg-success">{{ emo }} </span>
+                                    {% else %}
+                                    <span class="badge bg-danger">{{ emo }} </span>
+                                    {% endif %}
+                                {% endfor %}
+                            {% else %}
+                                <span class="badge bg-danger">Voice emotion not detected</span>
+                            {% endif %}
                         </p>
+                        
                         <p class="card-text">
                             <span class="fw-bold">Facial Expression:</span> 
                                 <span class="badge bg-success">{{ data.facial_expression }} </span>
@@ -102,11 +125,11 @@
                             {% endif %}
                         </p>
                         <p class="card-text">
-                            <span class="fw-bold">Thanks Gesture:</span> 
-                            {% if data.thanks_gesture != None %}
-                            <span class="badge bg-success">{{ data.thanks_gesture }} </span>
+                            <span class="fw-bold">Thanks:</span> 
+                            {% if data.thanks_word != None %}
+                            <span class="badge bg-success">{{ data.thanks_word }} </span>
                             {% else %}
-                            <span class="badge bg-danger">Thanking gesture is not included </span>
+                            <span class="badge bg-danger">Thanking is not included </span>
                             {% endif %}
                         </p>
                         <p class="card-text">

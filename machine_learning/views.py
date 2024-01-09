@@ -126,24 +126,44 @@ def scan_face(request):
             try:
                 audio_file_path = generate_audio_file(f"{video_file}")
                 print(audio_file_path)
-                language_sentiment_analysis, voice_modulation_data,energy_category,filler_words,words_list,greeting_words = analyze_language_and_voice(audio_file_path)
+                language_sentiment_analysis, voice_modulation_data,energy_category,filler_words,words_list,greeting_words,thanks_words = analyze_language_and_voice(audio_file_path)
                 # Get speech rate
                 wpm = calculate_speech_rate(audio_file_path)
                 speech_rate = round(wpm,2)
-                monotone = voice_monotone(audio_file_path)
-                pauses = detect_voice_pauses(audio_file_path)
-                language_analysis = language_sentiment_analysis["sentiment"]
-                energy_level,energy_score = energy_category
-                voice_modulation = {"pitch":voice_modulation_data["pitch"],"modulation_rating":voice_modulation_data["modulation_rating"]}
+                if speech_rate > 0:
+                    monotone = voice_monotone(audio_file_path)
+                    pauses = detect_voice_pauses(audio_file_path)
+                    voice_modulation = {"pitch":voice_modulation_data["pitch"],"modulation_rating":voice_modulation_data["modulation_rating"]}
+                    language_analysis = language_sentiment_analysis["sentiment"]
+                    energy_level,energy_score = energy_category
+                    voice_modulation_percentage = voice_modulation_data["percentage_modulation"]
+                    lang_sentimet_avg = language_sentiment_analysis["sentiment_score_average"]
+                else:
+                    monotone = None
+                    pauses = None
+                    voice_modulation = {"pitch":None,"modulation_rating":None}
+                    language_analysis = None
+                    energy_level = None
+                    energy_score = 0.0
+                    voice_modulation_percentage = 0.0
+                    lang_sentimet_avg = 0.0
 
                 if len(greeting_words) > 0:
                     greeting = "Greeting included"
                 else:
                     greeting = None
 
-                emo = voice_emotion(audio_file_path)
-                # Convert NumPy array to Python list
-                voice_emo = emo.tolist() if isinstance(emo, np.ndarray) else emo
+                if len(thanks_words) > 0:
+                    thanks = "Thanks included"
+                else:
+                    thanks = None
+
+                if speech_rate > 0:
+                    emo = voice_emotion(audio_file_path)
+                    # Convert NumPy array to Python list
+                    voice_emo = emo.tolist() if isinstance(emo, np.ndarray) else emo
+                else:
+                    voice_emo = ["None"]
 
             except FileNotFoundError as e:
                 print(f"File not found: {e}")
@@ -291,7 +311,6 @@ def scan_face(request):
                 # Hand Movement, Thanks Geesture and body confidence detection code functions *****************
                 greeting_gesture = hand_greeting_gesture(frame)
                 hand_track = hand_movement(image)
-                thanks_gesture = get_thanks_gesture(image)
                 confidence = body_confidence(image)
                 # Convert the RGB image to BGR.
                 image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
@@ -312,14 +331,6 @@ def scan_face(request):
                 else:
                     none_hand_movement_count += 1
                     save_detected_frame(video_recognition, "hand_not_moving", image,frame_count,current_time)
-
-                if thanks_gesture is not None:
-                    thanks_gesture,x,y = thanks_gesture
-                    thanks = "Thanking gesture included"
-                    cv2.putText(image, 'Thanks Gesture', (x, y + 30), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 255, 0), 2)
-                    save_detected_frame(video_recognition, "thanks", image,frame_count,current_time)
-                else:
-                    save_detected_frame(video_recognition, "no_thanks", image,frame_count,current_time)
 
                 if confidence == "Confident":
                     b_confidence = "Confident body posture"
@@ -424,10 +435,10 @@ def scan_face(request):
             facial_expression_score = round(facial_expression_ratio,2)
 
             if not filler_words:
-                language_analysis_score = language_sentiment_analysis["sentiment_score_average"] * 100
+                language_analysis_score = lang_sentimet_avg * 100
                 language_analysis_average = 0.0
             else:
-                language_analysis_average = ((language_sentiment_analysis["sentiment_score_average"] + 1.0) / 2) * 100  # 1.0 is added for filler words average to get percentage
+                language_analysis_average = ((lang_sentimet_avg + 1.0) / 2) * 100  # 1.0 is added for filler words average to get percentage
                 language_analysis_score = round(language_analysis_average, 2)
 
             if body_confidence_count > 0:
@@ -437,7 +448,7 @@ def scan_face(request):
             
             body_confidence_score = round((confidence_ratio * 100),2)
 
-            voice_modulation_score = round((energy_score + voice_modulation_data["percentage_modulation"])/2,2)
+            voice_modulation_score = round((energy_score + voice_modulation_percentage)/2,2)
 
             total_len = total_detected_time + total_not_detected_time
             ratio = total_detected_time/total_len
@@ -715,6 +726,9 @@ def analyze_language_and_voice(audio_file_path):
     #Detect Greeting in voice
     greeting_words = detect_greeting_words(transcribed_text)
 
+    #Detect thanks in voice
+    thanks_words = detect_thanks_words(transcribed_text)
+
     # Analyze voice energy level
     audio = AudioSegment.from_wav(audio_file_path)
     energy_level = calculate_energy_level(audio)
@@ -723,7 +737,7 @@ def analyze_language_and_voice(audio_file_path):
     filler_words = analyze_filler_words(transcribed_text)
     # Analyze voice modulation
     voice_modulation = analyze_voice_modulation(audio_file_path)
-    return language_analysis, voice_modulation,energy_category,filler_words,words_list,greeting_words
+    return language_analysis, voice_modulation,energy_category,filler_words,words_list,greeting_words,thanks_words
 
 # Initialize MediaPipe Hands for hand movement detection
 moving_hands = mp.solutions.hands
@@ -757,28 +771,22 @@ def hand_movement(image):
         print(f"Error in hand_movement: {e}")
     return None
 
-def get_thanks_gesture(image):
-    x = 0
-    y = 0
-    hands_results = hands.process(image)
+def detect_thanks_words(text):
+    """Detects the Thanks words "Thanks", "Thankyou","thank you so much","thanks a lot","thanks a ton","many many thanks" ?" in the text.
 
-    # Check if hands are detected
-    if hands_results.multi_hand_landmarks:
-        for hand_landmarks in hands_results.multi_hand_landmarks:
-            thumb_tip = hand_landmarks.landmark[mp_hands.HandLandmark.THUMB_TIP]
-            index_tip = hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP]
-            middle_tip = hand_landmarks.landmark[mp_hands.HandLandmark.MIDDLE_FINGER_TIP]
+    Args:
+        text: The text to search for greeting words in.
 
-            # Define your logic for detecting a "thanks" gesture
-            if thumb_tip.y < index_tip.y and middle_tip.y < index_tip.y:
-                return ('Thanks Gesture', x, y)
+    Returns:
+        A list of greeting words found in the text.
+    """
+    thanks_words_regex = re.compile(r'(?i)\b(thanks|thank you|thank you so much|thanks a lot|thanks a ton|many many thanks)\b')
 
-            # Draw hand landmarks on the image (optional for visualization)
-            mp_draw.draw_landmarks(image, hand_landmarks, mp_hands.HAND_CONNECTIONS)
 
-        return None
-
-    return None
+    thanks_words = []
+    for match in thanks_words_regex.finditer(text):
+        thanks_words.append(match.group())
+    return thanks_words
 
 def hand_greeting_gesture(frame):
     x, y, c = frame.shape
@@ -1244,24 +1252,44 @@ def analyse_video(video_file,user,duration):
     try:
         audio_file_path = generate_audio_file(f"{video_file}")
         print(audio_file_path)
-        language_sentiment_analysis, voice_modulation_data,energy_category,filler_words,words_list,greeting_words = analyze_language_and_voice(audio_file_path)
+        language_sentiment_analysis, voice_modulation_data,energy_category,filler_words,words_list,greeting_words,thanks_words = analyze_language_and_voice(audio_file_path)
         # Get speech rate
         wpm = calculate_speech_rate(audio_file_path)
         speech_rate = round(wpm,2)
-        monotone = voice_monotone(audio_file_path)
-        pauses = detect_voice_pauses(audio_file_path)
-        language_analysis = language_sentiment_analysis["sentiment"]
-        
-        energy_level,energy_score = energy_category
-        voice_modulation = {"pitch":voice_modulation_data["pitch"],"modulation_rating":voice_modulation_data["modulation_rating"]}
-    
+        if speech_rate > 0:
+            monotone = voice_monotone(audio_file_path)
+            pauses = detect_voice_pauses(audio_file_path)
+            voice_modulation = {"pitch":voice_modulation_data["pitch"],"modulation_rating":voice_modulation_data["modulation_rating"]}
+            language_analysis = language_sentiment_analysis["sentiment"]
+            energy_level,energy_score = energy_category
+            voice_modulation_percentage = voice_modulation_data["percentage_modulation"]
+            lang_sentimet_avg = language_sentiment_analysis["sentiment_score_average"]
+        else:
+            monotone = None
+            pauses = None
+            voice_modulation = {"pitch":None,"modulation_rating":None}
+            language_analysis = None
+            energy_level = None
+            energy_score = 0.0
+            voice_modulation_percentage = 0.0
+            lang_sentimet_avg = 0.0
+
         if len(greeting_words) > 0:
             greeting = "Greeting included"
         else:
             greeting = None
-        emo = voice_emotion(audio_file_path)
-        # Convert NumPy array to Python list
-        voice_emo = emo.tolist() if isinstance(emo, np.ndarray) else emo
+
+        if len(thanks_words) > 0:
+            thanks = "Thanks included"
+        else:
+            thanks = None
+
+        if speech_rate > 0:
+            emo = voice_emotion(audio_file_path)
+            # Convert NumPy array to Python list
+            voice_emo = emo.tolist() if isinstance(emo, np.ndarray) else emo
+        else:
+            voice_emo = ["None"]
         
     except FileNotFoundError as e:
         print(f"File not found: {e}")
@@ -1391,7 +1419,6 @@ def analyse_video(video_file,user,duration):
         # Hand Movement, Thanks Geesture and body confidence detection code functions *****************
         greeting_gesture = hand_greeting_gesture(frame)
         hand_track = hand_movement(image)
-        thanks_gesture = get_thanks_gesture(image)
         confidence = body_confidence(image)
         # Convert the RGB image to BGR.
         image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
@@ -1410,14 +1437,7 @@ def analyse_video(video_file,user,duration):
         else:
             none_hand_movement_count += 1
             save_detected_frame(video_recognition, "hand_not_moving", image,frame_count,current_time)
-
-        if thanks_gesture is not None:
-            thanks_gesture,x,y = thanks_gesture
-            thanks = "Thanking gesture included"
-            cv2.putText(image, 'Thanks Gesture', (x, y + 30), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 255, 0), 2)
-            save_detected_frame(video_recognition, "thanks", image)
-        else:
-            save_detected_frame(video_recognition, "no_thanks", image,frame_count,current_time)
+   
         if confidence == "Confident":
             b_confidence = "Confident body posture"
             body_confidence_count += 1
@@ -1510,10 +1530,10 @@ def analyse_video(video_file,user,duration):
     facial_expression_score = round(facial_expression_ratio,2)
 
     if not filler_words:
-        language_analysis_score = language_sentiment_analysis["sentiment_score_average"] * 100
+        language_analysis_score = lang_sentimet_avg * 100
         language_analysis_average = 0.0
     else:
-        language_analysis_average = ((language_sentiment_analysis["sentiment_score_average"] + 1.0) / 2) * 100  # 1.0 is added for filler words average to get percentage
+        language_analysis_average = ((lang_sentimet_avg + 1.0) / 2) * 100  # 1.0 is added for filler words average to get percentage
         language_analysis_score = round(language_analysis_average, 2)
 
     if body_confidence_count > 0:
@@ -1523,7 +1543,7 @@ def analyse_video(video_file,user,duration):
     
     body_confidence_score = round((confidence_ratio * 100),2)
 
-    voice_modulation_score = round((energy_score + voice_modulation_data["percentage_modulation"])/2,2)
+    voice_modulation_score = round((energy_score + voice_modulation_percentage)/2,2)
 
     total_len = total_detected_time + total_not_detected_time
     ratio = total_detected_time/total_len
